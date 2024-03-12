@@ -1,0 +1,487 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Size(5400,6945)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Caption("Commission Report")
+Gui.Form..Sizeable(False)
+Gui.Form.dtpBegDate.Create(DatePicker)
+Gui.Form.dtpBegDate.Size(1455,285)
+Gui.Form.dtpBegDate.Position(315,585)
+Gui.Form.dtpEndDate.Create(DatePicker)
+Gui.Form.dtpEndDate.Size(1455,285)
+Gui.Form.dtpEndDate.Position(2820,585)
+Gui.Form.lblBegDate.Create(Label,"Beginning Date",True,1425,255,0,285,345,True,0,"Arial",8,-2147483633,0)
+Gui.Form.lblEndDate.Create(Label,"Ending Date",True,1935,255,0,2745,345,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtBegSalesPerson.Create(TextBox,"",True,1215,300,0,375,1515,True,0,"Arial",8,-2147483643,1)
+Gui.Form.lblBegSalesperson.Create(Label,"Beginning Salesperson",True,1935,255,0,330,1245,True,0,"Arial",8,-2147483633,0)
+Gui.Form.cmdBegSalespersonBrwse.Create(Button)
+Gui.Form.cmdBegSalespersonBrwse.Size(345,345)
+Gui.Form.cmdBegSalespersonBrwse.Position(1755,1485)
+Gui.Form.cmdBegSalespersonBrwse.Caption("^")
+Gui.Form.cmdBegSalespersonBrwse.Event(Click,cmdBegSalespersonBrwse_Click)
+Gui.Form.cmdPrint.Create(Button)
+Gui.Form.cmdPrint.Size(1110,465)
+Gui.Form.cmdPrint.Position(435,5580)
+Gui.Form.cmdPrint.Caption("Print")
+Gui.Form.cmdPrint.Event(Click,cmdPrint_Click)
+Gui.Form.chkAll.Create(CheckBox)
+Gui.Form.chkAll.Size(2220,360)
+Gui.Form.chkAll.Position(420,4995)
+Gui.Form.chkAll.Caption("All Salespersons")
+Gui.Form.chkAll.Event(Click,chkAll_Click)
+Gui.Form.GsGridControl1.Create(GsGridControl)
+Gui.Form.GsGridControl1.Size(4350,2175)
+Gui.Form.GsGridControl1.Position(390,2655)
+Gui.Form.cmdAdd.Create(Button)
+Gui.Form.cmdAdd.Size(855,375)
+Gui.Form.cmdAdd.Position(390,2085)
+Gui.Form.cmdAdd.Caption("Add")
+Gui.Form.cmdAdd.Event(Click,cmdAdd_Click)
+Gui.Form.cmdClear.Create(Button)
+Gui.Form.cmdClear.Size(855,375)
+Gui.Form.cmdClear.Position(2820,2085)
+Gui.Form.cmdClear.Caption("Clear")
+Gui.Form.cmdClear.Event(Click,cmdClear_Click)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+V.Global.iBiRunID.Declare(long)
+v.Global.iBILogID.Declare(long)
+'Coded by: WAW
+'Date: 09/13/2017
+'Commission calculations according to a custom structure on a 
+'monthly basis at the end of the month after assigned invoices have been paid.
+'This will be a custom menu item for the maint program (this program)
+'preproc: SA>Reports>Custom Commission Report (4666)
+'maint: SA>Admin>Commission Maintenance (4666)
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+
+'create a datatable for the salesperson selection grid
+f.Data.DataTable.Create("dtSales",True)
+f.Data.DataTable.AddColumn("dtSales","BegEmp","string","")
+'f.Data.DataTable.AddColumn("dtSales","Bonus","string","")
+
+f.Data.datatable.DeleteRow("dtSales")
+
+f.Data.DataView.Create("dtSales","dvSales")
+gui.Form.GsGridControl1.AddGridviewFromDataview("gvSales","dtSales","dvSales")
+gui.Form.GsGridControl1.MainView("gvSales")
+
+gui.Form.GsGridControl1.SetColumnProperty("gvSales","BegEmp","caption","Salesperson")
+'gui.Form.GsGridControl1.SetColumnProperty("gvSales","Bonus","caption","Special Bonus %")
+'gui.Form.GsGridControl1.SetColumnProperty("gvSales","Bonus","readonly",False)
+'gui.Form.GsGridControl1.SetColumnProperty("gvSales","Bonus","allowedit",True)
+
+gui.Form..Visible(true)
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("Form_Unload_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'Close the connection and end the program
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Form_Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.End
+
+Function.Intrinsic.Control.EndIf
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdBegSalespersonBrwse_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdBegSalespersonBrwse_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.sret.Declare(String)
+v.Local.stitles.Declare(string)
+v.Local.iwidths.Declare(long)
+
+Function.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+
+'browse for beg salesperson
+Function.Intrinsic.String.Split("ID*!*Name*!*Email","*!*",variable.local.sTitles)
+Function.Intrinsic.String.Split("200*!*1000*!*800","*!*",variable.local.iWidths)
+Function.Intrinsic.UI.Browser("Select a Salesperson","conx","Select ID, NAME, EMAIL From V_SALESPERSONS order by NAME",Variable.Local.sTitles,Variable.Local.iWidths,Variable.Local.sRet)
+Function.Intrinsic.Control.If(Variable.Local.sRet,"=","***CANCEL***")
+ 	Function.Intrinsic.UI.Msgbox("No Salesperson was selected!")
+Function.Intrinsic.Control.Else
+ 	Function.Intrinsic.String.Split(Variable.Local.sRet,"*!*",Variable.Local.sRet)
+	'set the job in the textbox
+	gui.Form.txtBegSalesPerson.Text(v.Local.sret(0))
+	gui.Form.chkAll.Value(0)
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdBegSalespersonBrwse_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdBegSalespersonBrwse_Click.End
+
+Program.Sub.chkAll_Click.Start
+F.Intrinsic.Control.SetErrorHandler("chkAll_Click")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'if checked clear the textboxes
+f.Intrinsic.Control.If(v.Screen.Form!chkAll.Value,=,1)
+	gui.Form.txtBegSalesPerson.Text("")
+f.Intrinsic.Control.EndIf
+
+f.Data.DataTable.DeleteRow("dtSales")
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("chkAll_Click")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.chkAll_Click.End
+
+Program.Sub.cmdPrint_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdPrint_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.ssql.Declare(string)
+v.Local..BulkDeclareDate(dBegDate, DEndDate)
+v.Local.i.Declare(long)
+V.Local..BulkDeclareString(sParam, sVal, sRet, sSDate, sEDate, sEMP)
+v.Local.iID.Declare(Long)
+v.Local.ibirunid.Declare(long)
+v.Local.iret.Declare(long)
+v.Local.itop.Declare(long,0)
+v.Local.isales.Declare(long,0)
+v.Local.ssalespersons.Declare(string)
+v.Local.fdiv.Declare(float)
+v.Local.fcost.Declare(float)
+v.Local.fsalecost.Declare(float)
+v.Local.bstar.Declare(boolean)
+
+'check to see if a salesperson was selected
+f.intrinsic.Control.If(v.DataTable.dtSales.RowCount,<=,0)
+f.Intrinsic.Control.AndIf(v.Screen.Form!chkAll.Value,=,0)
+	F.Intrinsic.UI.Msgbox("Please select a salesperson")
+	f.Intrinsic.Control.Exitsub
+f.Intrinsic.Control.EndIf
+
+F.Global.BI.GetIDFromName("GCG_4666_Commissions.rpt",V.Local.iID)
+'get the log and run ID
+F.Global.BI.GetRunID(V.Global.iBiRunID)
+F.Global.BI.StartLogging(V.Global.iBiRunID,V.Local.iID,0,"",V.Global.iBILogID)
+
+'close the form
+gui.Form..Visible(false)
+
+f.Intrinsic.UI.InvokeWaitDialog("Generating custom commissions report...")
+
+'set the beginning/ending date
+v.Local.dbegdate.Set(v.Screen.Form!dtpBegDate.Value)
+v.Local.denddate.Set(v.Screen.Form!dtpendDate.Value)
+
+''check to see if all salespersons was selected
+f.Intrinsic.Control.If(v.Screen.Form!chkAll.Value,=,1)
+
+	f.Intrinsic.String.Build("Select RTRIM(SALESPERSON) as SALESREP, RTRIM(CUSTOMER) as CUSTOMER, RTRIM(INVOICE) as INVOICE, DATE_INVOICE, REFERENCE as PAY_REFNO, AMT_TRANS_TOTAL as AMT_TRANS_TOTAL, ORDER_NO, ORDER_SUFFIX from V_AR_OPEN_ITEMS where DATE_INVOICE between '{0}' and '{1}' and BATCH_CODE <> '11' and BATCH_CODE <> '16'",v.Local.dbegdate.PervasiveDate,v.Local.denddate.PervasiveDate,v.Local.ssql)
+	'add the other columns
+	f.Data.DataTable.CreateFromSQL("dtCommish","conx",v.Local.ssql,true)
+	f.Intrinsic.String.Build("Select RTRIM(SALESPERSON) as SALESREP, RTRIM(CUSTOMER) as CUSTOMER, RTRIM(INVOICE) as INVOICE, DATE_INVOICE, REFERENCE as PAY_REFNO, AMT_TRANS_TOTAL as AMT_TRANS_TOTAL, ORDER_NO, ORDER_SUFFIX from V_AR_HISTORY where DATE_INVOICE between '{0}' and '{1}'and BATCH_CODE <> '11' and BATCH_CODE <> '16'",v.Local.dbegdate.PervasiveDate,v.Local.denddate.PervasiveDate,v.Local.ssql)
+
+	'add the other columns
+	f.Data.DataTable.CreateFromSQL("dtCommishHistory","conx",v.Local.ssql,true)
+f.Intrinsic.Control.Else	
+	f.Intrinsic.Control.for(v.Local.isales,0,v.DataTable.dtSales.RowCount--,1)
+		f.Intrinsic.Control.If(v.Local.isales,=,0)
+			f.Intrinsic.String.build("'{0}'",v.DataTable.dtSales(v.Local.isales).BEGEMP.fieldvaltrim,v.local.ssalespersons)
+		f.Intrinsic.Control.Else
+			f.Intrinsic.String.build("{0},'{1}'",v.Local.ssalespersons,v.DataTable.dtSales(v.Local.isales).BEGEMP.fieldvaltrim,v.local.ssalespersons)
+		f.Intrinsic.Control.EndIf
+		f.Intrinsic.string.Build("{0}",v.Local.ssalespersons,v.Local.ssalespersons)
+		'query for the open AR item data
+	f.Intrinsic.control.Next(v.Local.isales)
+	f.Intrinsic.String.Build("Select RTRIM(SALESPERSON) as SALESREP, RTRIM(CUSTOMER) as CUSTOMER, RTRIM(INVOICE) as INVOICE, DATE_INVOICE, REFERENCE as PAY_REFNO, AMT_TRANS_TOTAL as AMT_TRANS_TOTAL, ORDER_NO, ORDER_SUFFIX from V_AR_OPEN_ITEMS where SALESREP IN ({0}) and DATE_INVOICE between '{1}' and '{2}' and BATCH_CODE <> '11' and BATCH_CODE <> '16'",v.Local.ssalespersons,v.Local.dbegdate.PervasiveDate,v.Local.denddate.PervasiveDate,v.Local.ssql)
+	'add the other columns
+	f.Data.DataTable.CreateFromSQL("dtCommish","conx",v.Local.ssql,true)
+	f.Intrinsic.String.Build("Select RTRIM(SALESPERSON) as SALESREP, RTRIM(CUSTOMER) as CUSTOMER, RTRIM(INVOICE) as INVOICE, DATE_INVOICE, REFERENCE as PAY_REFNO, AMT_TRANS_TOTAL as AMT_TRANS_TOTAL, ORDER_NO, ORDER_SUFFIX from V_AR_HISTORY where SALESREP in ({0}) and DATE_INVOICE between '{1}' and '{2}' and BATCH_CODE <> '11' and BATCH_CODE <> '16'",v.local.ssalespersons,v.Local.dbegdate.PervasiveDate,v.Local.denddate.PervasiveDate,v.Local.ssql)
+'	'add the other columns
+	f.Data.DataTable.CreateFromSQL("dtCommishHistory","conx",v.Local.ssql,true)
+f.Intrinsic.Control.EndIf
+
+'REFERENCE as PAY_REFNO
+'AMT_TRANS_TOTAL as AMT_TRANS_TOTAL
+'RTRIM(SALESPERSON) as SALESREP,
+
+'merge the ar and ar history tables and add columns
+f.Data.DataTable.Merge("dtCommishHistory","dtCommish",True,1)
+f.Data.DataTable.AddColumn("dtCommish","BIRUNID","Float")
+f.Data.DataTable.AddColumn("dtCommish","PART","string")
+f.Data.DataTable.AddColumn("dtCommish","DATE_PAID","string","")
+f.Data.DataTable.AddColumn("dtCommish","PRODUCT_LINE","string")
+f.Data.DataTable.AddColumn("dtCommish","QTY","Float")
+f.Data.DataTable.AddColumn("dtCommish","NAME_CUSTOMER","string")
+f.Data.DataTable.AddColumn("dtCommish","SALESREP_NAME","string")
+f.Data.DataTable.AddColumn("dtCommish","SUB_COMM","float")
+f.Data.DataTable.AddColumn("dtCommish","USN_COMM","float")
+f.Data.DataTable.AddColumn("dtCommish","PRICE","float")
+f.Data.DataTable.AddColumn("dtCommish","EMPLOYEE","string")
+f.Data.DataTable.AddColumn("dtCommish","COST","Float")
+f.Data.DataTable.AddColumn("dtCommish","SALECOST","Float")
+f.Data.DataTable.AddColumn("dtCommish","Bstar","Boolean")
+
+
+'NEED TO GET INFO FROM CURRENT AND HISTORY TABES
+'date paid
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(INVOICE) as INVOICE, RTRIM(DATE_TRANSACTION) as DATE_PAID from V_AR_OPEN_ITEMS where BATCH_CODE = '11'")
+F.Data.Dictionary.SetDefaultReturn("dict","")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","INVOICE","DATE_PAID")
+f.Data.Dictionary.Close("Dict")
+
+'order number
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(ORDER_NO), RTRIM(PART) as PART from V_ORDER_LINES")
+F.Data.Dictionary.SetDefaultReturn("dict","")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","ORDER_NO","PART")
+f.Data.Dictionary.Close("Dict")
+
+'product line
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(PART) as PART, product_line from V_INVENTORY_MSTR")
+F.Data.Dictionary.SetDefaultReturn("dict","")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","PART","PRODUCT_LINE")
+f.Data.Dictionary.Close("Dict")
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(ORDER_NO), RTRIM(QTY_SHIPPED) as QTY from V_ORDER_LINES")
+F.Data.Dictionary.SetDefaultReturn("dict","0")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","ORDER_NO","QTY")
+f.Data.Dictionary.Close("Dict")
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(ORDER_NO), RTRIM(PRICE) as PRICE from V_ORDER_LINES")
+F.Data.Dictionary.SetDefaultReturn("dict","0")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","ORDER_NO","PRICE")
+f.Data.Dictionary.Close("Dict")
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(ID) as SALESREP, RTRIM(NAME) as SALESREP_NAME from V_SALESPERSONS")
+F.Data.Dictionary.SetDefaultReturn("dict","")
+
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","SALESREP","SALESREP_NAME")
+f.Data.Dictionary.Close("Dict")
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select RTRIM(CUSTOMER) as CUSTOMER, RTRIM(NAME_CUSTOMER) as NAME_CUSTOMER from V_CUSTOMER_MASTER")
+F.Data.Dictionary.SetDefaultReturn("dict","")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","CUSTOMER","NAME_CUSTOMER")
+f.Data.Dictionary.Close("Dict")
+
+f.Data.DataTable.SetValue("dtCommish",-1,"BIRUNID",v.Global.iBiRunID)
+
+''loop through the datatable to get employee numbers where name like the salesrep name
+f.intrinsic.Control.For(v.Local.i,0,v.DataTable.dtCommish.rowcount--,1)
+	f.Intrinsic.String.Left(v.DataTable.dtCommish(v.Local.i).SALESREP_NAME.fieldvaltrim,5,v.Local.semp)
+	f.Intrinsic.String.Build("Select DISTINCT EMPLOYEE from V_EMPLOYEE_MSTR where NAME LIKE '%{0}%'",v.Local.semp,v.Local.ssql)
+	f.Data.DataTable.CreateFromSQL("DTEMP","conx",v.Local.ssql)
+	F.Intrinsic.Control.If(v.DataTable.DTEMP.Exists,=,True)
+		f.Intrinsic.Control.If(v.DataTable.DTEMP.RowCount--,>,-1)
+			v.Local.semp.Set(v.DataTable.DTEMP(v.Local.itop).EMPLOYEE.fieldvaltrim)
+			f.Data.DataTable.SetValue("dtCommish",v.Local.i,"EMPLOYEE",v.Local.semp.trim)
+		f.Intrinsic.Control.endif
+		f.Data.DataTable.Close("DTEMP")
+	f.Intrinsic.Control.EndIf
+	
+	v.Local.fcost.Set(0)
+	v.Local.fsalecost.Set(0)
+	
+	f.Intrinsic.String.Build("Select SUM(PRICE) as COST from V_ORDER_LINES where INVOICE = '{0}' and LINE_TYPE <> 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Intrinsic.Math.Add(v.Local.fcost,v.ODBC.conx!rst.FieldValTrim!COST,v.Local.fcost)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+	f.Intrinsic.String.Build("Select SUM(PRICE) as COST from V_ORDER_HIST_LINE where INVOICE = '{0}' and LINE_TYPE <> 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Intrinsic.Math.Add(v.Local.fcost,v.ODBC.conx!rst.FieldValTrim!COST,v.Local.fcost)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+	f.Intrinsic.String.Build("Select SUM(COST * QTY_SHIPPED) as COST from V_ORDER_LINES where INVOICE = '{0}' and LINE_TYPE = 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Intrinsic.Math.Add(v.Local.fsalecost,v.ODBC.conx!rst.FieldValTrim!COST,v.Local.fsalecost)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+		
+	f.Intrinsic.String.Build("select COUNT(LINE_TYPE) as LINE_TYPE from V_ORDER_Hist_LINE where INVOICE ='{0}' and LINE_TYPE = 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.FieldValTrim!LINE_TYPE,>,1)
+		f.Data.DataTable.SetValue("dtCommish",v.Local.i,"BSTAR",True)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close	
+	
+	f.Intrinsic.String.Build("select COUNT(LINE_TYPE) as LINE_TYPE from V_ORDER_Hist_LINE where INVOICE ='{0}' and LINE_TYPE = 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.FieldValTrim!LINE_TYPE,>,1)
+	
+		f.Data.DataTable.SetValue("dtCommish",v.Local.i,"BSTAR",True)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close	
+	
+	f.Intrinsic.String.Build("Select SUM(COST * QTY_SHIPPED) as COST from V_ORDER_HIST_LINE where INVOICE = '{0}' and LINE_TYPE = 'S'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Intrinsic.Math.Add(v.Local.fsalecost,v.ODBC.conx!rst.FieldValTrim!COST,v.Local.fsalecost)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close	
+	
+	f.Data.DataTable.SetValue("dtCommish",v.Local.i,"SALECOST",v.Local.fsalecost)
+	f.Data.DataTable.SetValue("dtCommish",v.Local.i,"COST",v.Local.fcost)
+	
+	f.Intrinsic.String.Build("Select RTRIM(PART) as PART, RTRIM(PRICE) as PRICE from V_ORDER_HIST_LINE where ORDER_NO = '{0}' and ORDER_SUFFIX = '{1}'",v.DataTable.dtCommish(v.Local.i).ORDER_NO.fieldvaltrim,v.DataTable.dtCommish(v.Local.i).ORDER_SUFFIX.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Data.DataTable.SetValue("dtCommish",v.Local.i,"PART",v.ODBC.conx!rst.FieldValTrim!PART)
+		f.Intrinsic.Control.If(v.ODBC.conx!rst.FieldValTrim!PRICE,>,0)
+			f.Data.DataTable.SetValue("dtCommish",v.Local.i,"PRICE",v.ODBC.conx!rst.FieldValTrim!PRICE)	
+		f.Intrinsic.Control.EndIf
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+	f.Intrinsic.String.Build("Select DATE_TRANSACTION from V_AR_HISTORY where BATCH_CODE = '11' and INVOICE = '{0}'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Data.DataTable.SetValue("dtCommish",v.Local.i,"DATE_PAID",v.ODBC.conx!rst.FieldValTrim!DATE_TRANSACTION)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+	f.Intrinsic.String.Build("Select QTY_SHIPPED from V_ORDER_HIST_LINE where INVOICE = '{0}'",v.DataTable.dtCommish(v.Local.i).INVOICE.fieldvaltrim,v.Local.ssql)
+	Function.Odbc.Connection!Conx.Openrecordsetro("rst",Variable.Local.ssql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.EOF,=,False)
+		f.Data.DataTable.SetValue("dtCommish",v.Local.i,"QTY",v.ODBC.conx!rst.FieldValTrim!QTY_SHIPPED)
+	f.Intrinsic.Control.EndIf
+	Function.Odbc.Conx!Rst.Close
+	
+f.Intrinsic.Control.Next(v.Local.i)
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select SUB_COMM, EMPLOYEE  as SALESREP from GCG_4666_MAINT")
+F.Data.Dictionary.SetDefaultReturn("dict","0")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","SALESREP","SUB_COMM")
+f.Data.Dictionary.Close("Dict")
+
+''create dictionaries to fill in the data
+f.Data.Dictionary.CreateFromSQL("dict","conx","Select USN_COMM, EMPLOYEE as SALESREP from GCG_4666_MAINT")
+F.Data.Dictionary.SetDefaultReturn("dict","0")
+''fill from dictionary 
+f.Data.DataTable.FillFromDictionary("dtCommish","Dict","SALESREP","USN_COMM")
+f.Data.Dictionary.Close("Dict")
+
+v.Local.ssql.Set("DELETE from GCG_4666_BIREPCOMM")
+f.ODBC.Connection!conx.execute(v.Local.ssql)
+
+F.Data.DataTable.SaveToDB("DTCommish","conx","GCG_4666_BIREPCOMM","",128,"BIRUNID@!@BIRUNID*!*SALESREP@!@SALESREP*!*CUSTOMER@!@CUSTOMER*!*INVOICE@!@INVOICE*!*DATE_INVOICE@!@DATE_INVOICE*!*DATE_PAID@!@DATE_PAID*!*PAY_REFNO@!@PAY_REFNO*!*PRODUCT_LINE@!@PRODUCT_LINE*!*PART@!@PART*!*QTY@!@QTY*!*EMPLOYEE@!@EMPLOYEE*!*SALESREP_NAME@!@SALESREP_NAME*!*AMT_TRANS_TOTAL@!@AMT_TRANS_TOTAL*!*NAME_CUSTOMER@!@NAME_CUSTOMER*!*PRICE@!@PRICE*!*COST@!@COST*!*SALECOST@!@SALECOST*!*BSTAR@!@BSTAR")
+
+'print the report
+v.Local.sval.Set(v.Global.iBiRunID)
+V.Local.sParam.Set("BIRUNID")
+F.Global.BI.StopLogging(V.Global.iBILogID)
+f.Intrinsic.UI.CloseWaitDialog
+F.Global.BI.runreportpreprocessor(V.Global.iBIRunID,V.Global.iBILogID,V.Local.sParam,V.Local.sVal,"",-1,True,"",-1,"",-1,"","",V.Local.iRet)
+
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdPrint_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.callsub(form_unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdPrint_Click.End
+
+Program.Sub.cmdClear_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdClear_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+f.Data.DataTable.DeleteRow("dtSales")
+
+'clear the textboxes 
+gui.Form.txtBegSalesPerson.Text("")
+
+gui.Form.chkAll.Value(0)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdCLear_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdClear_Click.End
+
+Program.Sub.cmdAdd_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdAdd_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.ssql.Declare(String)
+
+f.Data.DataTable.AddRow("dtSales","BegEmp",v.Screen.Form!txtBegSalesPerson.text)
+'clear the textboxes 
+gui.Form.txtBegSalesPerson.Text("")
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdAdd_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Preproc.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.cmdAdd_Click.End
+
+Program.Sub.Comments.Start
+${$0$}$$}$$}$12:00:00 AM$}$False
+Program.Sub.Comments.End
