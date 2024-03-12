@@ -1,0 +1,168 @@
+Program.Sub.ScreenSU.Start
+Gui.Form..Create
+Gui.Form..Size(5235,2625)
+Gui.Form..MinX(0)
+Gui.Form..MinY(0)
+Gui.Form..Position(0,0)
+Gui.Form..BackColor(-2147483633)
+Gui.Form..MousePointer(0)
+Gui.Form..Event(UnLoad,Form_UnLoad)
+Gui.Form..Caption("Commission Maintenance")
+Gui.Form.cmdSave.Create(Button)
+Gui.Form.cmdSave.Size(1155,480)
+Gui.Form.cmdSave.Position(270,1065)
+Gui.Form.cmdSave.Caption("Save")
+Gui.Form.cmdSave.Event(Click,cmdSave_Click)
+Gui.Form.lblEmployee.Create(Label,"Employee",True,1935,255,0,240,195,True,0,"Arial",8,-2147483633,0)
+Gui.Form.txtEmployee.Create(TextBox,"",True,1215,300,0,270,510,True,0,"Arial",8,-2147483643,1)
+Gui.Form.cmdEmpBrowse.Create(Button)
+Gui.Form.cmdEmpBrowse.Size(345,345)
+Gui.Form.cmdEmpBrowse.Position(1635,480)
+Gui.Form.cmdEmpBrowse.Caption("^")
+Gui.Form.cmdEmpBrowse.Event(Click,cmdEmpBrowse_Click)
+Gui.Form.chkBonus.Create(CheckBox)
+Gui.Form.chkBonus.Size(1995,735)
+Gui.Form.chkBonus.Position(2490,300)
+Gui.Form.chkBonus.Caption("Employee Allowed to Receive Special Bonuses")
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.SetErrorHandler("Main_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'Coded by: WAW
+'Date: 09/13/2017
+'Commission calculations according to a custom structure on a 
+'monthly basis at the end of the month after assigned invoices have been paid.
+'This will be ran from a custom menu item for the preprocessor (seperate program) but also a custom menu item for the maint program (this program)
+'preproc: SA>Reports>Custom Commission Report (4666)
+'maint: SA>Admin>Commission Maintenance (4666)
+
+F.ODBC.Connection!conx.OpenConnection(V.Ambient.PDSN,V.Ambient.PUser,V.Ambient.PPass)
+gui.Form.tabControl.SetTab(0)
+gui.Form..Visible(true)
+
+F.Intrinsic.Control.ExitSub
+F.Intrinsic.Control.Label("Main_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Maint.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_unload)
+Function.Intrinsic.Control.EndIf
+
+Program.Sub.Main.End
+
+Program.Sub.Form_UnLoad.Start
+F.Intrinsic.Control.SetErrorHandler("Form_Unload_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+
+'Close the connection and end the program
+F.ODBC.Connection!conx.Close
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("Form_Unload_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Maint.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.End
+Function.Intrinsic.Control.EndIf
+Program.Sub.Form_UnLoad.End
+
+Program.Sub.cmdSave_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdPLBrowse_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.ssql.Declare(String)
+v.Local.fsub.Declare(float)
+v.Local.fusn.Declare(float)
+
+'check to make sure an employee was selected
+f.Intrinsic.Control.If(gui.Form.txtEmployee.Text,=,"")
+	F.Intrinsic.UI.Msgbox("Please select an employee")
+	f.Intrinsic.Control.ExitSub
+f.Intrinsic.Control.EndIf
+
+'save the information to the custom table
+F.Intrinsic.String.Build("Select * from GCG_4666_Maint where EMPLOYEE = '{0}'",V.screen.Form!txtEmployee.text,V.Local.ssql)
+F.ODBC.Connection!conx.openrecordsetrw("rst",V.Local.ssql)
+F.Intrinsic.Control.If(V.ODBC.conx!rst.EOF,=,True)
+	F.ODBC.conx!rst.AddNew
+	f.Intrinsic.Control.If(v.Screen.Form!chkBonus.Value,=,1)
+		F.ODBC.conx!rst.Set!EMPLOYEE(v.Screen.Form!txtEmployee.text)
+		F.ODBC.conx!rst.Set!BONUS("Y")	
+	f.Intrinsic.Control.EndIf
+	F.ODBC.conx!rst.Update
+F.Intrinsic.Control.Else
+	f.Intrinsic.Control.If(v.Screen.Form!chkBonus.Value,=,1)
+		F.ODBC.conx!rst.Set!EMPLOYEE(v.Screen.Form!txtEmployee.text)
+		F.ODBC.conx!rst.Set!BONUS("Y")
+	f.Intrinsic.Control.EndIf
+	F.ODBC.conx!rst.Update
+F.Intrinsic.Control.EndIf
+f.ODBC.conx!rst.close
+
+gui.Form.txtEmployee.Text("")
+gui.Form.chkBonus.Value(0)
+
+gui.Form.tabControl.SetTab(0)
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdPLBrowse_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Maint.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdSave_Click.End
+
+Program.Sub.cmdEmpBrowse_Click.Start
+F.Intrinsic.Control.SetErrorHandler("cmdEmpBrowse_Click_Err")
+F.Intrinsic.Control.ClearErrors
+V.Local.sError.Declare(String)
+v.Local.sret.Declare(string)
+v.Local.ssql.Declare(string)
+
+'set the browser type ahead to true
+Function.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+
+v.Local.stitles.Declare(string)
+v.Local.iwidths.Declare(long)
+
+Function.Intrinsic.UI.SetBrowserHotTypeAhead(True)
+gui.Form.chkBonus.Value(0)
+'browse for beg salesperson
+Function.Intrinsic.String.Split("ID*!*Name*!*Email","*!*",variable.local.sTitles)
+Function.Intrinsic.String.Split("200*!*1000*!*800","*!*",variable.local.iWidths)
+Function.Intrinsic.UI.Browser("Select a Salesperson","conx","Select ID, NAME, EMAIL From V_SALESPERSONS order by NAME",Variable.Local.sTitles,Variable.Local.iWidths,Variable.Local.sRet)
+Function.Intrinsic.Control.If(Variable.Local.sRet,"=","***CANCEL***")
+ 	Function.Intrinsic.UI.Msgbox("No Salesperson was selected!")
+Function.Intrinsic.Control.Else
+ 	Function.Intrinsic.String.Split(Variable.Local.sRet,"*!*",Variable.Local.sRet)
+	'set the job in the textbox
+	gui.Form.txtEmployee.Text(v.Local.sret(0))
+	
+	f.Intrinsic.String.Build("Select BONUS from GCG_4666_Maint where EMPLOYEE = '{0}'",v.Local.sret(0).trim,v.Local.ssql)
+	F.ODBC.Connection!conX.OpenRecordsetRO("rst",V.Local.sSql)
+	f.Intrinsic.Control.If(v.ODBC.conx!rst.FieldValTrim!BONUS,=,"Y")
+		gui.Form.chkBonus.Value(1)
+	f.intrinsic.Control.EndIf
+	F.ODBC.conX!rst.Close
+Function.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Label("cmdEmpBrowse_Click_Err")
+F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+	Function.Intrinsic.String.Concat("Project: GCG_4666_Commission_Maint.g2u",V.Ambient.Newline,V.Ambient.Newline,"Subroutine: ",V.Ambient.CurrentSubroutine,V.Ambient.NewLine,"Error Occurred ",V.Ambient.ErrorNumber," with description ",V.Ambient.ErrorDescription,V.Local.sError)
+	F.Intrinsic.UI.Msgbox(V.Local.sError)
+	f.Intrinsic.Control.CallSub(form_Unload)
+Function.Intrinsic.Control.EndIf
+Program.Sub.cmdEmpBrowse_Click.End
